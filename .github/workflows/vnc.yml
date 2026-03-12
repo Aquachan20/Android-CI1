@@ -1,4 +1,4 @@
-name: XFCE noVNC Ngrok
+name: XFCE noVNC LocalTunnel
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ jobs:
 
       - name: Install XFCE VNC noVNC
         run: |
-          sudo apt install -y xfce4 xfce4-goodies tigervnc-standalone-server novnc websockify wget
+          sudo apt install -y xfce4 xfce4-goodies tigervnc-standalone-server novnc websockify nodejs npm
 
           mkdir -p ~/.vnc
           echo "1" | vncpasswd -f > ~/.vnc/passwd
@@ -24,22 +24,19 @@ jobs:
 
           nohup websockify --web=/usr/share/novnc 6080 localhost:5901 >/dev/null 2>&1 &
 
-      - name: Install Ngrok
-        run: |
-          wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.zip
-          unzip ngrok-v3-stable-linux-amd64.zip
-          sudo mv ngrok /usr/local/bin
+      - name: Install LocalTunnel
+        run: sudo npm install -g localtunnel
 
-      - name: Setup Ngrok Auth
-        run: ngrok config add-authtoken ${{ secrets.NGROK_TOKEN }}
-
-      - name: Start Ngrok Tunnel
+      - name: Start LocalTunnel
         run: |
-          nohup ngrok http 6080 > ngrok.log 2>&1 &
+          nohup lt --port 6080 > tunnel.log 2>&1 &
           sleep 10
 
           echo "Tunnel URL:"
-          curl -s http://127.0.0.1:4040/api/tunnels | grep -o 'https://[^"]*'
+          grep -o 'https://[a-zA-Z0-9.-]*\.loca\.lt' tunnel.log | head -n 1
+
+      - name: Show tunnel log
+        run: cat tunnel.log
 
       - name: Keep runner alive
         run: sleep 21600
